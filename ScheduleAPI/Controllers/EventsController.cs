@@ -27,7 +27,10 @@ namespace ScheduleAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<ScheduleEvent>> Get(int id)
         {
-            return await _db.ScheduleEvents.SingleAsync(x => x.Id == id);
+            var scheduleEvent = await _db.ScheduleEvents.SingleOrDefaultAsync(x => x.Id == id);
+            if (scheduleEvent == null)
+                return NotFound();
+            return scheduleEvent;
         }
         [HttpPost]
         public async Task<ActionResult<IEnumerable<ScheduleEvent>>> Post(ScheduleEvent scheduleEvent)
