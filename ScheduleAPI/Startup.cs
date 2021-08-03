@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -7,10 +8,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using ScheduleAPI.Interfaces;
 using ScheduleAPI.Models;
+using ScheduleAPI.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace ScheduleAPI
@@ -29,6 +34,30 @@ namespace ScheduleAPI
         {
             services.AddDbContext<ScheduleContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddSingleton<IPasswordService, PasswordService>();
+
+            var issuer = Configuration.GetSection("Jwt").GetValue<string>("Issuer");
+            var audience = Configuration.GetSection("Jwt").GetValue<string>("Audience");
+            var issuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(Configuration.GetSection("Jwt").GetValue<string>("SecretKey")));
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.RequireHttpsMetadata = false;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = issuer,
+
+                        ValidateAudience = true,
+                        ValidAudience = audience,
+                        ValidateLifetime = true,
+
+                        IssuerSigningKey = issuerSigningKey,
+                        ValidateIssuerSigningKey = true,
+                    };
+                });
+
             services.AddControllers();
         }
 
@@ -44,6 +73,7 @@ namespace ScheduleAPI
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
