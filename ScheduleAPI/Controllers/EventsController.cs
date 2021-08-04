@@ -22,51 +22,66 @@ namespace ScheduleAPI.Controllers
         }
         [Authorize]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ScheduleEvent>>> Get()
+        public async Task<ActionResult<IEnumerable<ScheduleEventResponse>>> Get()
         {
-            return await _db.ScheduleEvents.ToListAsync();
+            return await _db.ScheduleEvents.Where(x => x.User.Login == User.Identity.Name).Select(x => new ScheduleEventResponse(x)).ToListAsync();
         }
         [Authorize]
         [HttpGet("{id}")]
-        public async Task<ActionResult<ScheduleEvent>> Get(int id)
+        public async Task<ActionResult<ScheduleEventResponse>> Get(int id)
         {
-            var scheduleEvent = await _db.ScheduleEvents.SingleOrDefaultAsync(x => x.Id == id);
+            var scheduleEvent = await _db.ScheduleEvents.Include(x => x.User).SingleOrDefaultAsync(x => x.Id == id);
             if (scheduleEvent == null)
                 return NotFound();
-            return scheduleEvent;
+            if (scheduleEvent.User.Login != User.Identity.Name)
+                return Unauthorized("ScheduleEvent belongs to another user");
+            return new ScheduleEventResponse(scheduleEvent);
         }
         [Authorize]
         [HttpPost]
-        public async Task<ActionResult<IEnumerable<ScheduleEvent>>> Post(ScheduleEvent scheduleEvent)
+        public async Task<ActionResult<ScheduleEventResponse>> Post(ScheduleEvent scheduleEvent)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+            var user = await _db.Users.SingleOrDefaultAsync(x => x.Login == User.Identity.Name);
+            if(user == null)
+                return NotFound("User not found");
+            scheduleEvent.User = user;
             _db.ScheduleEvents.Add(scheduleEvent);
             await _db.SaveChangesAsync();
-            return Ok(scheduleEvent);
+            return new ScheduleEventResponse(scheduleEvent);
         }
         [Authorize]
         [HttpPut]
-        public async Task<ActionResult<IEnumerable<ScheduleEvent>>> Put(ScheduleEvent scheduleEvent)
+        public async Task<ActionResult<ScheduleEventResponse>> Put(ScheduleEvent scheduleEvent)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            if (!_db.ScheduleEvents.Any(x => x.Id == scheduleEvent.Id))
+            var dbEvent = await _db.ScheduleEvents.SingleOrDefaultAsync(x => x.Id == scheduleEvent.Id);
+            if (dbEvent == null)
                 return NotFound();
+            var user = await _db.Users.SingleOrDefaultAsync(x => x.Login == User.Identity.Name);
+            if (user == null)
+                return NotFound("User not found");
+            if(user.Login != dbEvent.User.Login)
+                return Unauthorized("ScheduleEvent belongs to another user");
+            scheduleEvent.User = user;
             _db.Update(scheduleEvent);
             await _db.SaveChangesAsync();
-            return Ok(scheduleEvent);
+            return new ScheduleEventResponse(scheduleEvent);
         }
         [Authorize]
         [HttpDelete("{id}")]
-        public async Task<ActionResult<IEnumerable<ScheduleEvent>>> Delete(int id)
+        public async Task<ActionResult<ScheduleEventResponse>> Delete(int id)
         {
-            var scheduleEvent = _db.ScheduleEvents.FirstOrDefault(x => x.Id == id);
+            var scheduleEvent = _db.ScheduleEvents.Include(x => x.User).FirstOrDefault(x => x.Id == id);
             if (scheduleEvent == null)
                 return NotFound();
+            if (scheduleEvent.User.Login != User.Identity.Name)
+                return Unauthorized("ScheduleEvent belongs to another user");
             _db.ScheduleEvents.Remove(scheduleEvent);
             await _db.SaveChangesAsync();
-            return Ok(scheduleEvent);
+            return new ScheduleEventResponse(scheduleEvent);
         }
     }
 }
