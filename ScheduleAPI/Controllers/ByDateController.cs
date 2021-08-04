@@ -21,14 +21,14 @@ namespace ScheduleAPI.Controllers
         }
         [Authorize]
         [HttpGet]
-        public async Task<ActionResult<ScheduleEventResponse>> Get(DateTime date)
+        public async Task<ActionResult<IEnumerable<ScheduleEventResponse>>> Get(DateTime date)
         {
-            var scheduleEvent = await _db.ScheduleEvents.Include(x => x.User).SingleOrDefaultAsync(x => x.EventDate == date);
-            if (scheduleEvent == null)
-                return NotFound();
-            if (scheduleEvent.User.Login != User.Identity.Name)
-                return Unauthorized("ScheduleEvent belongs to another user");
-            return new ScheduleEventResponse(scheduleEvent);
+            var scheduleEvents = await _db.ScheduleEvents
+                .Include(x => x.User)
+                .Where(x => x.EventDate.Date == date && x.User.Login != User.Identity.Name)
+                .Select(x => new ScheduleEventResponse(x))
+                .ToListAsync();
+            return scheduleEvents;
         }
     }
 }
