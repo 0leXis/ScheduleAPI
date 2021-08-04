@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScheduleAPI.Models;
@@ -18,6 +19,7 @@ namespace ScheduleAPI.Controllers
         {
             _db = db;
         }
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<ScheduleEvent>> Get(DateTime date)
         {

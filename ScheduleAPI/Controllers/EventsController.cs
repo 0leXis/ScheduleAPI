@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScheduleAPI.Models;
 using System;
@@ -19,11 +20,13 @@ namespace ScheduleAPI.Controllers
         {
             _db = db;
         }
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ScheduleEvent>>> Get()
         {
             return await _db.ScheduleEvents.ToListAsync();
         }
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<ScheduleEvent>> Get(int id)
         {
@@ -32,6 +35,7 @@ namespace ScheduleAPI.Controllers
                 return NotFound();
             return scheduleEvent;
         }
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<IEnumerable<ScheduleEvent>>> Post(ScheduleEvent scheduleEvent)
         {
@@ -41,6 +45,7 @@ namespace ScheduleAPI.Controllers
             await _db.SaveChangesAsync();
             return Ok(scheduleEvent);
         }
+        [Authorize]
         [HttpPut]
         public async Task<ActionResult<IEnumerable<ScheduleEvent>>> Put(ScheduleEvent scheduleEvent)
         {
@@ -52,6 +57,7 @@ namespace ScheduleAPI.Controllers
             await _db.SaveChangesAsync();
             return Ok(scheduleEvent);
         }
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<ActionResult<IEnumerable<ScheduleEvent>>> Delete(int id)
         {
